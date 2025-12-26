@@ -148,3 +148,28 @@ export function getArithmeticSequenceInfo(terms: number[]): {
   }
   return { start, step, last: terms.at(-1)! };
 }
+
+/** Returns an iterator over subsets of the given size. */
+export function* subsets<T>(items: T[], size: number): Generator<T[]> {
+  const indices = interval(0, size - 1);
+  yield indices.map((i) => items[i]!);
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  while (true) {
+    let i = -1;
+    let didBreak = false;
+    for (i = size - 1; i >= 0; i--) {
+      if (indices[i] !== i + items.length - size) {
+        didBreak = true;
+        break;
+      }
+    }
+    if (!didBreak) {
+      return;
+    }
+    indices[i]! += 1;
+    for (const j of interval(i + 1, size - 1)) {
+      indices[j] = indices[j - 1]! + 1;
+    }
+    yield indices.map((i) => items[i]!);
+  }
+}

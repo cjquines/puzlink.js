@@ -4,7 +4,7 @@ import meow from "meow";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as url from "node:url";
-import type { Link } from "../src/index.js";
+import type { Link, Subset } from "../src/index.js";
 import { Puzlink } from "../src/index.js";
 import { time } from "./util.js";
 
@@ -19,14 +19,20 @@ const cli = meow(
       $ npm run test:evals -- [options] [<pattern>]
 
     Options
-      --description, -d        Show descriptions for each link
-      --limit <num>, -l <num>  Number of links to print per failed case [default: ${DEFAULT_LIMIT.toString()}]
-      --show-pass              Show cases that pass
-      --watch, -w              Rerun on changes *on the eval files*
+      --add <name>, -a <name>   Add a new eval with the given name and exit
+      --description, -d         Show descriptions for each link
+      --limit <num>, -l <num>   Number of links to print per failed case [default: ${DEFAULT_LIMIT.toString()}]
+      --show-pass               Show cases that pass
+      --type <type>, -t <type>  Type of tests to run [default: link,subset]
+      --watch, -w               Rerun on changes *on the eval files*
   `,
   {
     importMeta: import.meta,
     flags: {
+      add: {
+        type: "string",
+        shortFlag: "a",
+      },
       description: {
         type: "boolean",
         shortFlag: "d",
@@ -40,6 +46,11 @@ const cli = meow(
       showPass: {
         type: "boolean",
         default: false,
+      },
+      type: {
+        type: "string",
+        shortFlag: "t",
+        default: "link,subset",
       },
       watch: {
         type: "boolean",
@@ -92,10 +103,19 @@ const statusLabel: Record<Status, string> = {
 export type EvalSuite = {
   name: string;
   source?: string;
-  cases: {
-    slugs: string | string[];
-    expected: string;
-  }[];
+  cases: (
+    | {
+        type?: "link";
+        slugs: string | string[];
+        expected: string;
+      }
+    | {
+        type: "subset";
+        slugs: string | string[];
+        expected: string;
+        expectedSlugs: string | string[];
+      }
+  )[];
 };
 
 const evalsDir = path.resolve(
@@ -123,10 +143,13 @@ async function* getEvalSuites(args: Args): AsyncGenerator<EvalSuite> {
         !evalSuite.default?.name ||
         !evalSuite.default.source ||
         !evalSuite.default.cases ||
-        evalSuite.default.cases.some((c) => !c.slugs || !c.expected)
+        evalSuite.default.cases.some((c) => !c.slugs)
       ) {
         continue;
       }
+      evalSuite.default.cases = evalSuite.default.cases.filter((c) =>
+        args.type.includes(c.type ?? "link"),
+      );
       yield evalSuite.default as EvalSuite;
     } catch {
       // pass; possibly a file that broke mid-edit
@@ -134,37 +157,84 @@ async function* getEvalSuites(args: Args): AsyncGenerator<EvalSuite> {
   }
 }
 
-type EvalResult = {
-  expected: string;
-  status: Status;
-  links: Link[];
-  actualRank: number | null;
-  actualLink: Link | null;
-  parsedSlugs: string[];
-};
+type EvalResult =
+  | {
+      type: "link";
+      expected: string;
+      status: Status;
+      links: Link[];
+      actualRank: number | null;
+      actualLink: Link | null;
+      parsedSlugs: string[];
+    }
+  | {
+      type: "subset";
+      expected: string;
+      expectedSubset: string[];
+      status: Status;
+      subsets: Subset[];
+      actualRank: number | null;
+      actualLink: Link | null;
+      actualWords: string[] | null;
+      parsedSlugs: string[];
+    };
 
 function* runEvalSuite(
   puzlink: Puzlink,
   suite: EvalSuite,
 ): Generator<EvalResult> {
-  for (const { slugs, expected } of suite.cases) {
-    const parsedSlugs = Puzlink.parse(slugs);
-    const links = puzlink.link(parsedSlugs, { limit: null });
-    const index = links.findIndex((link) => link.name.includes(expected));
-    const status =
-      index === 0
-        ? "okay"
-        : index !== -1 && index <= DEFAULT_LIMIT - 1
-          ? "warn"
-          : "fail";
-    yield {
-      expected,
-      status,
-      links,
-      actualRank: index !== -1 ? index + 1 : null,
-      actualLink: index !== -1 ? links[index]! : null,
-      parsedSlugs,
-    };
+  for (const test of suite.cases) {
+    const parsedSlugs = Puzlink.parse(test.slugs);
+    if (test.type === "subset") {
+      const { expected, expectedSlugs } = test;
+      const expectedSubset = Puzlink.parse(expectedSlugs);
+      const subsets = puzlink.subset(parsedSlugs);
+      const index = subsets.findIndex((subset) =>
+        subset.link.name.includes(expected),
+      );
+      const symmetricDifference = new Set(
+        ...subsets[index]!.words,
+      ).symmetricDifference(new Set(expectedSubset));
+      const status =
+        index === 0 && symmetricDifference.size === 0
+          ? "okay"
+          : symmetricDifference.size === 0 &&
+              index !== -1 &&
+              index <= DEFAULT_LIMIT - 1
+            ? "warn"
+            : "fail";
+      const actualSubset = index !== -1 ? subsets[index]! : null;
+      yield {
+        type: "subset",
+        expected,
+        expectedSubset,
+        status,
+        subsets,
+        actualRank: index !== -1 ? index + 1 : null,
+        actualLink: actualSubset?.link ?? null,
+        actualWords: actualSubset?.words ?? null,
+        parsedSlugs,
+      };
+    } else {
+      const { expected } = test;
+      const links = puzlink.link(parsedSlugs, { limit: null });
+      const index = links.findIndex((link) => link.name.includes(expected));
+      const status =
+        index === 0
+          ? "okay"
+          : index !== -1 && index <= DEFAULT_LIMIT - 1
+            ? "warn"
+            : "fail";
+      yield {
+        type: "link",
+        expected,
+        status,
+        links,
+        actualRank: index !== -1 ? index + 1 : null,
+        actualLink: index !== -1 ? links[index]! : null,
+        parsedSlugs,
+      };
+    }
   }
 }
 
@@ -190,25 +260,55 @@ function printSingleResult(args: Args, result: EvalResult): string | null {
         ),
       );
   }
-
-  for (let i = 0; i < args.limit && i < result.links.length; i++) {
-    const isExpectedLink = i + 1 === result.actualRank;
-    lines.push([" ".repeat(2)]);
-    lines
-      .at(-1)!
-      .push(chalk.gray(result.links[i]!.score.toFixed(1).padStart(6, " ")));
-    lines.at(-1)!.push(chalk.gray(": "));
-    if (isExpectedLink) {
-      lines.at(-1)!.push(statusColor[result.status](result.links[i]!.name));
-    } else {
-      lines.at(-1)!.push(result.links[i]!.name);
+  if (result.type === "subset") {
+    lines.push([" ".repeat(4)]);
+    lines.at(-1)!.push(chalk.gray(`want: ${result.expectedSubset.join(", ")}`));
+    if (result.actualWords) {
+      lines.push([" ".repeat(4)]);
+      lines.at(-1)!.push(chalk.gray(` got: ${result.actualWords.join(", ")}`));
     }
+  }
 
-    if (args.description) {
-      for (const line of result.links[i]!.description) {
-        lines.push([" ".repeat(6)]);
-        lines.at(-1)!.push((isExpectedLink ? chalk.white : chalk.gray)(line));
+  if (result.type === "link") {
+    for (let i = 0; i < args.limit && i < result.links.length; i++) {
+      const isExpectedLink = i + 1 === result.actualRank;
+      lines.push([" ".repeat(2)]);
+      lines
+        .at(-1)!
+        .push(chalk.gray(result.links[i]!.score.toFixed(1).padStart(6, " ")));
+      lines.at(-1)!.push(chalk.gray(": "));
+      if (isExpectedLink) {
+        lines.at(-1)!.push(statusColor[result.status](result.links[i]!.name));
+      } else {
+        lines.at(-1)!.push(result.links[i]!.name);
       }
+
+      if (args.description) {
+        for (const line of result.links[i]!.description) {
+          lines.push([" ".repeat(6)]);
+          lines.at(-1)!.push((isExpectedLink ? chalk.white : chalk.gray)(line));
+        }
+      }
+    }
+  } else {
+    for (let i = 0; i < args.limit && i < result.subsets.length; i++) {
+      const isExpectedSubset = i + 1 === result.actualRank;
+      lines.push([" ".repeat(2)]);
+      lines
+        .at(-1)!
+        .push(
+          chalk.gray(result.subsets[i]!.link.score.toFixed(1).padStart(6, " ")),
+        );
+      lines.at(-1)!.push(chalk.gray(": "));
+      if (isExpectedSubset) {
+        lines
+          .at(-1)!
+          .push(statusColor[result.status](result.subsets[i]!.link.name));
+      } else {
+        lines.at(-1)!.push(result.subsets[i]!.link.name);
+      }
+      lines.push([" ".repeat(4)]);
+      lines.at(-1)!.push(chalk.gray(result.subsets[i]!.words.join(", ")));
     }
   }
 
