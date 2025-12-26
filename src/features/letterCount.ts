@@ -140,7 +140,7 @@ export function letterCountFeatures(): Feature[] {
     ...mapProduct(
       uniqueOf,
       [{ name: "vowels", letters: VOWELS }],
-      interval(1, 5),
+      interval(0, 5),
     ),
     ...mapProduct(
       uniqueOf,

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "include": ["src/**/*.ts"],
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "strict": true,
+
+    "module": "nodenext",
+
+    "checkJs": true,
+
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+
+    "lib": ["es2023"],
+    "target": "es2023"
+  }
+}

@@ -16,7 +16,7 @@ export default {
         COMMEMORATIVE BATS
         BEER CHUGGING
       `,
-      expected: "each index has one repeated letter",
+      expected: "TODO each index has one repeated letter",
     },
   ],
 } satisfies EvalSuite;

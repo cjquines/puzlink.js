@@ -1,8 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { caesar, interval, mapProduct, ordinal, windows } from "./util.js";
 
-export const speedTest = process.env["SPEED_TEST"] === "true";
-
 describe("util", () => {
   test("mapProduct, interval", () => {
     expect(interval(0, 5, 2)).toEqual([0, 2, 4]);

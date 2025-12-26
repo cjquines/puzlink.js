@@ -2872,18 +2872,30 @@ export const knownLogProbs: Record<string, number> = {
   "has z and y with 1 letters between": -7.875580026268212,
   "has z and z with 0 letters between": -Infinity,
   "has z and z with 1 letters between": -Infinity,
-  "has equal letters with 0 letters between, at least 1 times": -1.600159088449507,
-  "has equal letters with 0 letters between, at least 2 times": -4.232417339051258,
-  "has equal letters with 0 letters between, at least 3 times": -6.2102344818958155,
-  "has equal letters with 1 letters between, at least 1 times": -1.5868621699796073,
-  "has equal letters with 1 letters between, at least 2 times": -3.461873054991358,
-  "has equal letters with 1 letters between, at least 3 times": -5.493721752379658,
-  "has equal letters with 2 letters between, at least 1 times": -1.5611492175666282,
-  "has equal letters with 2 letters between, at least 2 times": -3.461873054991358,
-  "has equal letters with 2 letters between, at least 3 times": -5.324183635211378,
-  "has equal letters with 3 letters between, at least 1 times": -1.7916787419224747,
-  "has equal letters with 3 letters between, at least 2 times": -3.656072321092104,
-  "has equal letters with 3 letters between, at least 3 times": -5.469761678632514,
+  "has equal letters with 0 letters between, at least 1 times":
+    -1.600159088449507,
+  "has equal letters with 0 letters between, at least 2 times":
+    -4.232417339051258,
+  "has equal letters with 0 letters between, at least 3 times":
+    -6.2102344818958155,
+  "has equal letters with 1 letters between, at least 1 times":
+    -1.5868621699796073,
+  "has equal letters with 1 letters between, at least 2 times":
+    -3.461873054991358,
+  "has equal letters with 1 letters between, at least 3 times":
+    -5.493721752379658,
+  "has equal letters with 2 letters between, at least 1 times":
+    -1.5611492175666282,
+  "has equal letters with 2 letters between, at least 2 times":
+    -3.461873054991358,
+  "has equal letters with 2 letters between, at least 3 times":
+    -5.324183635211378,
+  "has equal letters with 3 letters between, at least 1 times":
+    -1.7916787419224747,
+  "has equal letters with 3 letters between, at least 2 times":
+    -3.656072321092104,
+  "has equal letters with 3 letters between, at least 3 times":
+    -5.469761678632514,
   "has greek letters anagram substring": -2.0798262730732002,
   "has nato alphabet anagram substring": -4.555050547673511,
   "has numbers anagram substring": -3.046866368944583,
@@ -2900,17 +2912,23 @@ export const knownLogProbs: Record<string, number> = {
   "has compass directions substring, 5 times": -3.947683671683775,
   "has compass directions substring, at least 5 times": -3.671260610837539,
   "has iso 2-letter country codes substring, 2 times": -1.0592275707594183,
-  "has iso 2-letter country codes substring, at least 2 times": -0.29059101668644516,
+  "has iso 2-letter country codes substring, at least 2 times":
+    -0.29059101668644516,
   "has iso 2-letter country codes substring, 3 times": -1.3696465004794405,
-  "has iso 2-letter country codes substring, at least 3 times": -0.913549652886072,
+  "has iso 2-letter country codes substring, at least 3 times":
+    -0.913549652886072,
   "has iso 2-letter country codes substring, 4 times": -2.2307516944556802,
-  "has iso 2-letter country codes substring, at least 4 times": -1.9179954793440075,
+  "has iso 2-letter country codes substring, at least 4 times":
+    -1.9179954793440075,
   "has iso 2-letter country codes substring, 5 times": -3.4498355939620495,
-  "has iso 2-letter country codes substring, at least 5 times": -3.2326324759460903,
+  "has iso 2-letter country codes substring, at least 5 times":
+    -3.2326324759460903,
   "has iso 3-letter country codes substring, 2 times": -4.177988631552253,
-  "has iso 3-letter country codes substring, at least 2 times": -4.155625929088901,
+  "has iso 3-letter country codes substring, at least 2 times":
+    -4.155625929088901,
   "has iso 3-letter country codes substring, 3 times": -7.967147219793702,
-  "has iso 3-letter country codes substring, at least 3 times": -7.967147219793702,
+  "has iso 3-letter country codes substring, at least 3 times":
+    -7.967147219793702,
   "has iso 3-letter country codes substring, 4 times": -Infinity,
   "has iso 3-letter country codes substring, at least 4 times": -Infinity,
   "has iso 3-letter country codes substring, 5 times": -Infinity,
@@ -2970,4 +2988,5 @@ export const knownLogProbs: Record<string, number> = {
   "starts with roman numerals": -1.2317740172113254,
   "ends with roman numerals": -1.669407406667121,
   "can be broken into roman numerals": -6.081739390836332,
+  "has 0 unique vowels": -3.5641099850574633,
 };

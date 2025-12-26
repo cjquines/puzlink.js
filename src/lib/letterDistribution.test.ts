@@ -1,7 +1,7 @@
 import { loadWordlist } from "cromulence";
 import { describe, expect, test } from "vitest";
 import { LetterDistribution } from "./letterDistribution.js";
-import { speedTest } from "./util.test.js";
+import { speedTest } from "./testUtils.js";
 
 describe("LetterDistribution", () => {
   test.runIf(speedTest)("speed", async () => {

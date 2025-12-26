@@ -1,20 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "include": ["*.js", "scripts/**/*.ts", "src/**/*.ts"],
-  "compilerOptions": {
-    "exactOptionalPropertyTypes": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "noUncheckedIndexedAccess": true,
-    "strict": true,
-
-    "module": "nodenext",
-
-    "checkJs": true,
-
-    "erasableSyntaxOnly": true,
-    "verbatimModuleSyntax": true,
-
-    "lib": ["es2023"],
-    "target": "es2023"
-  }
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.lib.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
 }

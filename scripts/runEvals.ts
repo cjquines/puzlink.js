@@ -271,8 +271,31 @@ async function mainLoop(args: Args, puzlink: Puzlink) {
   }
 }
 
+async function addEval(file: string) {
+  const content = `
+import type { EvalSuite } from "../runEvals.js";
+
+export default {
+  name: "${file}",
+  source: "?",
+  cases: [
+    {
+      slugs: \`\`,
+      expected: "?",
+    },
+  ],
+} satisfies EvalSuite;
+`.trimStart();
+  await fs.writeFile(path.join(evalsDir, `${file}.ts`), content, "utf-8");
+}
+
 async function main() {
   const args = parseArgs();
+
+  if (args.add) {
+    await addEval(args.add);
+    return;
+  }
 
   process.stdout.write(chalk.gray("initializing puzlink..."));
   const { result: puzlink, duration: puzlinkInitMs } = await time(() =>

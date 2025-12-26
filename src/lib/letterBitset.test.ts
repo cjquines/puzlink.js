@@ -1,7 +1,7 @@
 import { loadWordlist } from "cromulence";
 import { describe, expect, test } from "vitest";
 import { LetterBitset, LetterBitsets } from "./letterBitset.js";
-import { speedTest } from "./util.test.js";
+import { speedTest } from "./testUtils.js";
 
 describe("LetterBitset", () => {
   test("index works", () => {
