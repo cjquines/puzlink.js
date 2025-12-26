@@ -2,6 +2,7 @@ import { loadWordlist, slugify } from "cromulence";
 import { Wordlist } from "./lib/wordlist.js";
 import type { Linker } from "./linkers/index.js";
 import { allLinkers } from "./linkers/index.js";
+import { interval, subsets } from "./lib/util.js";
 
 /**
  * A Link is a relationship between a (possibly ordered) set of words, with how
@@ -49,6 +50,40 @@ export type LinkOptions = {
    */
   ordered?: boolean;
 };
+
+/** A subset is a set of words and a link they share. */
+export type Subset = {
+  /** The words in the subset. */
+  words: string[];
+  /** The link shared by the words. */
+  link: Link;
+};
+
+type BaseSubsetOptions = {
+  /** The minimum number of words in the subset. Defaults to 4. */
+  minSize?: number;
+  /**
+   * The maximum number of words in the subset. Defaults to half the number of
+   * given words, clamped to be at least minSize and at most 8.
+   */
+  maxSize?: number;
+};
+
+/** Options for Puzlink.subset(). */
+export type SubsetOptions =
+  | (BaseSubsetOptions & {
+      /**
+       * If true, return an *unsorted* generator, rather than a list. Defaults to
+       * false.
+       */
+      lazy: true;
+      limit?: undefined | null;
+    })
+  | (BaseSubsetOptions & {
+      lazy?: false;
+      /** Limit the number of subsets returned. Defaults to 10. */
+      limit?: number;
+    });
 
 export class Puzlink {
   linkers: Linker[];
@@ -107,6 +142,55 @@ export class Puzlink {
         }));
       })
       .sort((a, b) => (a.score > b.score ? -1 : 1))
+      .slice(0, limit ?? Infinity);
+  }
+
+  private *subsetLazy(
+    slugs: string[],
+    { minSize, maxSize }: Required<Pick<SubsetOptions, "minSize" | "maxSize">>,
+  ): Generator<Subset> {
+    for (const size of interval(minSize, maxSize)) {
+      for (const words of subsets(slugs, size)) {
+        console.log("linking", words);
+        for (const link of this.link(words, {
+          limit: Infinity,
+          minFeatureRatio: 1,
+          ordered: false,
+        })) {
+          yield { words, link };
+        }
+      }
+    }
+  }
+
+  /** Find the highest-scoring links for a subset of the given words. */
+  subset(
+    /** The words to link. See Puzlink.parse for how these are parsed. */
+    words: string | readonly string[],
+    options: SubsetOptions & { lazy: true },
+  ): Generator<Subset>;
+  subset(
+    /** The words to link. See Puzlink.parse for how these are parsed. */
+    words: string | readonly string[],
+    options?: SubsetOptions & { lazy?: false },
+  ): Subset[];
+  subset(
+    words: string | readonly string[],
+    { lazy = false, limit = 10, minSize = 4, maxSize }: SubsetOptions = {},
+  ): Generator<Subset> | Subset[] {
+    const slugs = Puzlink.parse(words).sort();
+
+    if (maxSize === undefined) {
+      maxSize = Math.floor(slugs.length / 2);
+      maxSize = Math.max(minSize, Math.min(maxSize, 8));
+    }
+
+    if (lazy) {
+      return this.subsetLazy(slugs, { minSize, maxSize });
+    }
+
+    return Array.from(this.subsetLazy(slugs, { minSize, maxSize }))
+      .sort((a, b) => (a.link.score > b.link.score ? -1 : 1))
       .slice(0, limit ?? Infinity);
   }
 
