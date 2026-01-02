@@ -54,7 +54,7 @@ export default {
         SANDSTONE
         SQUINTALITTLE
       `,
-      expected: "has unit substring",
+      expected: "has mass unit substring",
     },
   ],
 } satisfies EvalSuite;

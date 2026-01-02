@@ -1,4 +1,5 @@
 import { loadWordlist } from "cromulence";
+import { HypernymDAG } from "./lib/hypernymDAG.js";
 import { Wordlist } from "./lib/wordlist.js";
 import type { Linker } from "./linkers/index.js";
 import { allLinkers } from "./linkers/index.js";
@@ -80,8 +81,8 @@ export async function download(): Promise<Puzlink> {
 export class Puzlink {
   linkers: Linker[];
 
-  constructor(wordlist: Record<string, number>) {
-    this.linkers = allLinkers(new Wordlist(wordlist));
+  constructor(wordlist: Record<string, number>, hypernymDAG?: HypernymDAG) {
+    this.linkers = allLinkers(new Wordlist(wordlist), hypernymDAG);
   }
 
   static download = download;

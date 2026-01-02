@@ -2,10 +2,10 @@ import { loadWordlist } from "cromulence";
 import { describe, expect, test } from "vitest";
 import { PrefixDistribution, SuffixDistribution } from "./affixDistribution.js";
 import { Distribution } from "./distribution.js";
-import { speedTest } from "./testUtils.js";
+import { slowTests } from "./testUtils.js";
 
 describe("AffixDistribution", () => {
-  test.runIf(speedTest)("speed", async () => {
+  test.runIf(slowTests)("speed", async () => {
     const wordlist = await loadWordlist();
     const start = Date.now();
     new PrefixDistribution(Object.keys(wordlist));

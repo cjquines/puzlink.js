@@ -1,7 +1,7 @@
 import { loadWordlist } from "cromulence";
 import { describe, expect, test } from "vitest";
 import { LetterBitCounter, LetterBitCounters } from "./letterBitCounter.js";
-import { speedTest } from "./testUtils.js";
+import { slowTests } from "./testUtils.js";
 
 describe("LetterBitCounter", () => {
   test("index works", () => {
@@ -46,7 +46,7 @@ describe("LetterBitCounter", () => {
 });
 
 describe("LetterBitCounters", () => {
-  test.runIf(speedTest)("speed", async () => {
+  test.runIf(slowTests)("speed", async () => {
     const wordlist = await loadWordlist();
     const start = Date.now();
     new LetterBitCounters(Object.keys(wordlist));

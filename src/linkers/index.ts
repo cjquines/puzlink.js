@@ -4,11 +4,13 @@ import type { LinkOptions } from "../index.js";
 import { LengthDistribution } from "../lib/lengthDistribution.js";
 import { LogNum } from "../lib/logNum.js";
 import type { Wordlist } from "../lib/wordlist.js";
+import { HypernymDAG } from "../lib/hypernymDAG.js";
 import { metricLinkers } from "../metrics/index.js";
 import * as T from "../templating/index.js";
 import { indexingLinker } from "./indexing.js";
 import { lengthLinker } from "./length.js";
 import { otherLinker } from "./other.js";
+import { substringLinker } from "./substring.js";
 
 /**
  * A PartialLink is the subset of Link that a Linker needs to return. We do
@@ -42,7 +44,10 @@ export type Linker = {
 };
 
 /** All linkers. */
-export function allLinkers(wordlist: Wordlist): Linker[] {
+export function allLinkers(
+  wordlist: Wordlist,
+  hypernymDAG?: HypernymDAG,
+): Linker[] {
   const lengthDist = LengthDistribution.from(answerLengthLogProbs);
   return [
     ...featureLinkers(wordlist),
@@ -50,6 +55,7 @@ export function allLinkers(wordlist: Wordlist): Linker[] {
     indexingLinker(wordlist),
     lengthLinker(lengthDist),
     otherLinker(wordlist),
+    ...(hypernymDAG ? [substringLinker(hypernymDAG)] : []),
   ];
 }
 

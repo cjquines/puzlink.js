@@ -15,7 +15,7 @@ export default {
         CIK
         GIOPS
       `,
-      expected: "has transadd",
+      expected: "has some transadd",
     },
   ],
 } satisfies EvalSuite;
