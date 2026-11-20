@@ -8,13 +8,41 @@ export type HypernymDAGData = {
   indexLines: string[];
   dataLines: string[];
   wordLines?: string[];
+  rateLines?: string[];
 };
+
+/** Substring rates conditioned on slug lengths in [i-1, i). */
+const RATE_BUCKETS = [0, 6, 8, 10, 12, 15, Infinity];
+
+function rateBucket(length: number): number {
+  return RATE_BUCKETS.findIndex((end) => length < end) - 1;
+}
+
+const RATE_FLOOR = 1e-4;
+const MIN_SUBSTRING_LENGTH = 3;
 
 type SynsetData = {
   hyponymLogProb: LogNum;
   hypernyms: number[];
   word?: string;
 };
+
+function parseRates(rateLines: string[]): Map<number, LogNum[]> {
+  const rates = new Map<number, LogNum[]>();
+  let id = 0;
+  for (const line of rateLines) {
+    if (line.trim() === "") {
+      continue;
+    }
+    const [delta, ...encoded] = line.split(" ").map((x) => parseInt(x, 10));
+    id += delta!;
+    rates.set(
+      id,
+      encoded.map((x) => LogNum.fromExp(-x / 10)),
+    );
+  }
+  return rates;
+}
 
 export class HypernymDAG {
   /** From wordlist word to its synset IDs. */
@@ -28,13 +56,23 @@ export class HypernymDAG {
    * - smaller synset IDs have smaller smallest hypernym IDs.
    */
   data: Map<number, SynsetData>;
+  /**
+   * From synset ID to probability a wordlist slug has a substring under it,
+   * by length bucket. TODO: merge this into SynsetData?
+   */
+  rates: Map<number, LogNum[]> | undefined;
 
-  constructor(index: Map<string, number[]>, data: Map<number, SynsetData>) {
+  constructor(
+    index: Map<string, number[]>,
+    data: Map<number, SynsetData>,
+    rates?: Map<number, LogNum[]>,
+  ) {
     this.index = index;
     this.data = data;
+    this.rates = rates;
   }
 
-  dump(): Required<HypernymDAGData> {
+  dump(): Required<Omit<HypernymDAGData, "rateLines">> {
     const indexLines = [];
 
     // Bin words by synset ID:
@@ -107,6 +145,7 @@ export class HypernymDAG {
     indexLines,
     dataLines,
     wordLines,
+    rateLines,
   }: HypernymDAGData): HypernymDAG {
     const index = new Map<string, number[]>();
 
@@ -149,7 +188,75 @@ export class HypernymDAG {
       }
     }
 
-    return new HypernymDAG(index, data);
+    return new HypernymDAG(index, data, rateLines && parseRates(rateLines));
+  }
+
+  /**
+   * Compute substring rates over the given slugs (the wordlist). Each line is
+   * "<synset ID delta> <rate per bucket>...", where a rate is stored as
+   * round(-10 ln p).
+   */
+  dumpRates(slugs: Iterable<string>): string[] {
+    const counts = new DefaultMap<number, number[]>(() =>
+      RATE_BUCKETS.slice(1).map(() => 0),
+    );
+    const totals = RATE_BUCKETS.slice(1).map(() => 0);
+    for (const slug of slugs) {
+      const bucket = rateBucket(slug.length);
+      totals[bucket]!++;
+      for (const id of this.substringAncestors(slug).keys()) {
+        counts.get(id)[bucket]!++;
+      }
+    }
+    const total = totals.reduce((a, b) => a + b, 0);
+
+    const lines = [];
+    let lastID = 0;
+    for (const id of Array.from(counts.keys()).sort((a, b) => a - b)) {
+      const byBucket = counts.get(id);
+      if (byBucket.reduce((a, b) => a + b, 0) < RATE_FLOOR * total) {
+        continue;
+      }
+      const encoded = byBucket.map((count, i) =>
+        Math.round(
+          -10 * Math.log(Math.max(count / Math.max(totals[i]!, 1), RATE_FLOOR)),
+        ),
+      );
+      lines.push(`${(id - lastID).toString()} ${encoded.join(" ")}`);
+      lastID = id;
+    }
+    return lines;
+  }
+
+  /**
+   * All synsets with a hyponym that's a substring of the slug (excluding the
+   * whole slug), mapped to the longest such substring.
+   */
+  substringAncestors(slug: string): Map<number, string> {
+    const result = new Map<number, string>();
+    for (let size = slug.length - 1; size >= MIN_SUBSTRING_LENGTH; size--) {
+      for (let start = 0; start + size <= slug.length; start++) {
+        const word = slug.slice(start, start + size);
+        for (const id of this.index.get(word) ?? []) {
+          for (const ancestor of this.ancestors(id)) {
+            if (!result.has(ancestor)) {
+              result.set(ancestor, word);
+            }
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  /** Probability a slug of given length has a substring in the synset. */
+  substringLogProb(synsetID: number, length: number): LogNum {
+    if (!this.rates) {
+      return this.data.get(synsetID)!.hyponymLogProb;
+    }
+    return (
+      this.rates.get(synsetID)?.[rateBucket(length)] ?? LogNum.from(RATE_FLOOR)
+    );
   }
 
   @memoize(1)
@@ -172,43 +279,5 @@ export class HypernymDAG {
 
   has(word: string): boolean {
     return this.index.has(word);
-  }
-
-  similarity(groups: string[][]): {
-    hyponym: string | undefined;
-    logProb: LogNum;
-    words: string[];
-  } {
-    const groupAncestors = groups.map((words) => {
-      const ancestors = new Map<number, string>();
-      for (const word of words) {
-        const ids = this.index.get(word) ?? [];
-        for (const id of ids) {
-          for (const ancestor of this.ancestors(id)) {
-            const existing = ancestors.get(ancestor);
-            if (!existing || existing.length < word.length) {
-              ancestors.set(ancestor, word);
-            }
-          }
-        }
-      }
-      return ancestors;
-    });
-
-    const lca = Array.from(
-      new Set(groupAncestors.flatMap((x) => Array.from(x.keys()))),
-    )
-      .filter((id) => groupAncestors.every((x) => x.has(id)))
-      .map((id) => ({ id, hyponymLogProb: this.data.get(id)!.hyponymLogProb }))
-      .sort((a, b) => (a.hyponymLogProb.lt(b.hyponymLogProb) ? -1 : 1))[0];
-
-    const lcaID = lca?.id ?? 0;
-
-    return {
-      hyponym: this.data.get(lcaID)!.word,
-      // TODO: we need better math here if we want to use this more widely
-      logProb: this.data.get(lcaID)!.hyponymLogProb.pow(groups.length),
-      words: groupAncestors.map((map) => map.get(lcaID)!),
-    };
   }
 }

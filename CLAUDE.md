@@ -20,7 +20,7 @@ npm run typecheck
 npm run lint
 npm run format                  # prettier --write
 npm run build:tsc               # compile library to dist/
-npm run build:cache             # regenerate src/data/cache/*.json (feature/metric log probs)
+npm run build:cache             # regenerate src/data/cache/*.json (feature/metric log probs) and hypernyms-rates.txt
 npm run build:categories        # scripts/categories/*.txt -> src/data/categories/*.json
 ```
 

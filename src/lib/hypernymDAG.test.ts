@@ -1,60 +1,70 @@
 import { describe, expect, test } from "vitest";
 import { downloadHypernymData } from "../download.node.js";
+import { testLinker } from "../linkers/index.js";
+import { substringLinker } from "../linkers/substring.js";
 import { HypernymDAG } from "./hypernymDAG.js";
 import { slowTests } from "./testUtils.js";
 
 describe("hypernymDAG", () => {
   test.runIf(slowTests)("download + real data", async () => {
     const hypernymDAG = HypernymDAG.parse(await downloadHypernymData());
+    const link = testLinker(substringLinker, hypernymDAG);
 
     expect(
-      hypernymDAG.similarity([
-        ["puma", "mat", "mate"],
-        ["orca", "orc"],
-        ["boar", "boa"],
-        ["hare", "red"],
-        ["mole", "leon"],
+      link([
+        "announcement",
+        "ezrapound",
+        "grampus",
+        "ingrained",
+        "melodrama",
+        "piston",
+        "sandstone",
+        "squintalittle",
       ]),
     ).toMatchInlineSnapshot(`
-      {
-        "hyponym": "placental",
-        "logProb": -24.5,
-        "words": [
-          "puma",
-          "orca",
-          "boar",
-          "hare",
-          "mole",
+      [
+        [
+          "8/8 has mass unit substring",
+          "announcement  ounce
+      ezrapound     pound
+      grampus       gram
+      ingrained     grain
+      melodrama     dram
+      piston        ton
+      sandstone     stone
+      squintalittle quintal",
         ],
-      }
+      ]
     `);
 
+    // Only some of the slugs need to match:
     expect(
-      hypernymDAG.similarity([
-        ["men", "noun", "ounce", "cement"],
-        ["rap", "ezra", "pound"],
-        ["ram", "amp", "pus", "gram", "ramp"],
-        ["rain", "grain"],
-        ["ram", "dram", "rama", "drama"],
-        ["pis", "ton"],
-        ["nds", "ton", "one", "sand", "tone", "sands", "stone"],
-        ["ali", "lit", "quin", "tali", "quint", "squint", "little", "quintal"],
+      link([
+        "announcement",
+        "ezrapound",
+        "grampus",
+        "ingrained",
+        "melodrama",
+        "piston",
+        "sandstone",
+        "squintalittle",
+        "arcane",
+        "barely",
+        "condones",
       ]),
     ).toMatchInlineSnapshot(`
-      {
-        "hyponym": "mass_unit",
-        "logProb": -55.2,
-        "words": [
-          "ounce",
-          "pound",
-          "gram",
-          "grain",
-          "dram",
-          "ton",
-          "stone",
-          "quintal",
+      [
+        [
+          "7/11 has avoirdupois unit substring",
+          "announcement  ounce
+      ezrapound     pound
+      ingrained     grain
+      melodrama     dram
+      piston        ton
+      sandstone     stone
+      squintalittle quintal",
         ],
-      }
+      ]
     `);
   });
 });

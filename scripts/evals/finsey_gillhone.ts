@@ -58,7 +58,7 @@ export default {
         RADAR TRAP
         ORANGE PEEL
       `,
-      expected: "has device substring",
+      expected: "has weapon substring",
     },
     {
       slugs: `

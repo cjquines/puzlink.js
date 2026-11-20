@@ -1,4 +1,4 @@
-import { downloadWordlist } from "#download";
+import { downloadHypernymData, downloadWordlist } from "#download";
 import meow from "meow";
 import { fork } from "node:child_process";
 import * as fs from "node:fs/promises";
@@ -10,12 +10,13 @@ import {
   FeatureLogProbCache,
   MetricLogProbCache,
 } from "../src/lib/keyedCache.js";
+import { HypernymDAG } from "../src/lib/hypernymDAG.js";
 import { LetterDistribution } from "../src/lib/letterDistribution.js";
 import { LogNum } from "../src/lib/logNum.js";
 import { allMetrics } from "../src/metrics/index.js";
 import * as T from "../src/templating/index.js";
 import type { WorkItem, WorkResult } from "./cacheWorker.js";
-import { scriptsDir, timeAsync, timeSync } from "./util.js";
+import { scriptsDir, timeAsync, timeSync, writeLines } from "./util.js";
 
 const MAX_TAG_LENGTH = 20;
 
@@ -35,6 +36,7 @@ const cli = meow(
       --no-features      Don't build feature log probs
       --no-metrics       Don't build metric log probs
       --no-letters       Don't build letter distribution
+      --no-hypernyms     Don't build hypernym substring rates
       --concurrency <n>  Number of workers
   `,
   {
@@ -42,6 +44,7 @@ const cli = meow(
     flags: {
       all: { type: "boolean", default: false },
       features: { type: "boolean", default: true },
+      hypernyms: { type: "boolean", default: true },
       letters: { type: "boolean", default: true },
       metrics: { type: "boolean", default: true },
       concurrency: {
@@ -277,6 +280,7 @@ async function main() {
   if (args.features) console.log("- feature log probs");
   if (args.metrics) console.log("- metric log probs");
   if (args.letters) console.log("- letter distribution");
+  if (args.hypernyms) console.log("- hypernym substring rates");
   console.log(`using ${args.concurrency.toString()} workers`);
 
   console.log("");
@@ -290,6 +294,24 @@ async function main() {
     );
     console.log(`built letter distribution in ${duration.toString()}ms`);
     await write("letterDistribution", JSON.stringify(result.dump(), null, 2));
+  }
+
+  if (args.hypernyms) {
+    console.log("\nbuilding hypernym substring rates...");
+    const hypernymDAG = HypernymDAG.parse(
+      await downloadHypernymData({ includeWords: false }),
+    );
+    const { result, duration } = timeSync(() =>
+      hypernymDAG.dumpRates(Object.keys(rawWordlist.result)),
+    );
+    console.log(`built hypernym substring rates in ${duration.toString()}ms`);
+    for (const dir of ["src", "dist"]) {
+      await writeLines(
+        path.resolve(scriptsDir, "..", dir, "data", "hypernyms"),
+        "hypernyms-rates.txt",
+        result,
+      );
+    }
   }
 
   console.log("\nbuilding log probs...");

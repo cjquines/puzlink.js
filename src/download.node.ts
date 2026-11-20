@@ -15,15 +15,17 @@ export async function downloadHypernymData({
   );
   const readLines = async (name: string) =>
     (await fs.readFile(path.join(hypernymsDir, name), "utf-8")).split("\n");
-  const [indexLines, dataLines, wordLines] = await Promise.all([
+  const [indexLines, dataLines, wordLines, rateLines] = await Promise.all([
     readLines("hypernyms-index.txt"),
     readLines("hypernyms-data.txt"),
     includeWords && readLines("hypernyms-word.txt"),
+    readLines("hypernyms-rates.txt").catch(() => undefined),
   ]);
   return {
     indexLines,
     dataLines,
     ...(wordLines && { wordLines }),
+    ...(rateLines && { rateLines }),
   };
 }
 
