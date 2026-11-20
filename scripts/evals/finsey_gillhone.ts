@@ -50,6 +50,18 @@ export default {
     },
     {
       slugs: `
+        POLICE PICKUP TRUCK
+        CABINET
+        TRIDENTINE MASS
+        PROPELLOR
+        SUZIE BURGER
+        RADAR TRAP
+        ORANGE PEEL
+      `,
+      expected: "has device substring",
+    },
+    {
+      slugs: `
         ANNABELLE
         COCOA
         RENT COLLECTOR
