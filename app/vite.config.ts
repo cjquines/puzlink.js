@@ -1,6 +1,7 @@
 import * as url from "node:url";
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 
 export default defineConfig((env) => ({
   base: "",
@@ -12,13 +13,10 @@ export default defineConfig((env) => ({
     },
   },
   plugins: [
-    react({
-      babel: {
-        plugins: [
-          ["babel-plugin-react-compiler"],
-          ["@babel/plugin-proposal-decorators", { version: "2023-11" }],
-        ],
-      },
+    react(),
+    babel({
+      presets: [reactCompilerPreset()],
+      plugins: [["@babel/plugin-proposal-decorators", { version: "2023-11" }]],
     }),
   ],
   ...(env.command === "build"

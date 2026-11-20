@@ -141,7 +141,12 @@ function InputControls() {
         <Icons.BrushCleaning />
       </IconButton>
       {!userOptions.autoSend && (
-        <IconButton label="Run" onClick={sendInput}>
+        <IconButton
+          label="Run"
+          onClick={() => {
+            sendInput(true);
+          }}
+        >
           <Icons.Play />
         </IconButton>
       )}
