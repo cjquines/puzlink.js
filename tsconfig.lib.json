@@ -14,6 +14,7 @@
 
     "module": "esnext",
     "moduleResolution": "bundler",
+    "customConditions": ["puzlink-source"],
     "rootDir": "src",
 
     "noEmit": true,

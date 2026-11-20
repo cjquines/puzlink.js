@@ -305,13 +305,11 @@ async function main() {
       hypernymDAG.dumpRates(Object.keys(rawWordlist.result)),
     );
     console.log(`built hypernym substring rates in ${duration.toString()}ms`);
-    for (const dir of ["src", "dist"]) {
-      await writeLines(
-        path.resolve(scriptsDir, "..", dir, "data", "hypernyms"),
-        "hypernyms-rates.txt",
-        result,
-      );
-    }
+    await writeLines(
+      path.resolve(scriptsDir, "..", "src", "data", "hypernyms"),
+      "hypernyms-rates.txt",
+      result,
+    );
   }
 
   console.log("\nbuilding log probs...");

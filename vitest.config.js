@@ -1,9 +1,13 @@
 import { transform } from "esbuild";
+import { defaultServerConditions } from "vite";
 import { defineConfig } from "vitest/config";
 
 // oxc doesn't lower decorators
 export default defineConfig({
   oxc: false,
+  ssr: {
+    resolve: { conditions: ["puzlink-source", ...defaultServerConditions] },
+  },
   plugins: [
     {
       name: "esbuild-ts",

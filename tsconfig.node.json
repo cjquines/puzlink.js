@@ -17,6 +17,7 @@
     "strict": true,
 
     "module": "nodenext",
+    "customConditions": ["puzlink-source"],
     "rootDir": ".",
 
     "noEmit": true,

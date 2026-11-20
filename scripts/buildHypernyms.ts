@@ -18,7 +18,6 @@ const scriptsDir = path.dirname(url.fileURLToPath(import.meta.url));
 const wordnetDir = path.join(scriptsDir, "wordnet");
 
 const srcDataDir = path.resolve(scriptsDir, "..", "src", "data", "hypernyms");
-const distDataDir = path.resolve(scriptsDir, "..", "dist", "data", "hypernyms");
 
 async function main() {
   const wordlist = await downloadWordlist();
@@ -179,11 +178,9 @@ async function main() {
     }
   }
 
-  for (const dir of [srcDataDir, distDataDir]) {
-    await writeLines(dir, "hypernyms-index.txt", indexLines);
-    await writeLines(dir, "hypernyms-data.txt", dataLines);
-    await writeLines(dir, "hypernyms-word.txt", wordLines);
-  }
+  await writeLines(srcDataDir, "hypernyms-index.txt", indexLines);
+  await writeLines(srcDataDir, "hypernyms-data.txt", dataLines);
+  await writeLines(srcDataDir, "hypernyms-word.txt", wordLines);
 }
 
 await main();

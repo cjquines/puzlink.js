@@ -18,8 +18,12 @@
   "type": "module",
   "imports": {
     "#download": {
-      "node": "./src/download.node.ts",
-      "default": "./src/download.ts"
+      "puzlink-source": {
+        "node": "./src/download.node.ts",
+        "default": "./src/download.ts"
+      },
+      "node": "./dist/download.node.js",
+      "default": "./dist/download.js"
     }
   },
   "exports": {
@@ -35,14 +39,14 @@
     "!src/data/hypernyms/*.txt"
   ],
   "scripts": {
-    "build:cache": "tsx scripts/buildCache.ts",
-    "build:categories": "tsx scripts/buildCategories.ts",
-    "build:hypernyms": "tsx scripts/buildHypernyms.ts",
-    "build:tsc": "tsc --build tsconfig.build.json",
+    "build:cache": "tsx --conditions=puzlink-source scripts/buildCache.ts",
+    "build:categories": "tsx --conditions=puzlink-source scripts/buildCategories.ts",
+    "build:hypernyms": "tsx --conditions=puzlink-source scripts/buildHypernyms.ts",
+    "build:tsc": "tsc --build tsconfig.build.json && node -e \"fs.cpSync('src/data/hypernyms', 'dist/data/hypernyms', { recursive: true })\"",
     "format": "prettier --write .",
     "lint": "eslint",
     "test": "vitest run",
-    "test:evals": "tsx scripts/runEvals.ts",
+    "test:evals": "tsx --conditions=puzlink-source scripts/runEvals.ts",
     "test:slow": "SLOW_TESTS=true vitest run",
     "test:watch": "vitest watch",
     "typecheck": "tsc --build tsconfig.json"
