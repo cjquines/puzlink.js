@@ -43,7 +43,7 @@ Three kinds of linkers, all assembled in `src/linkers/index.ts` (`allLinkers`):
 
 - **Features** (`src/features/`): boolean properties of a single slug, e.g. "can insert h to get a word". Must be as _specific_ as possible (prepend-T, not prepend-a-letter); generalization happens at the linker level. Each feature becomes a binomial linker: given the per-word probability of the feature over the wordlist, score the p-value of k-of-n input words having it.
 - **Metrics** (`src/metrics/`): map a slug to a non-negative integer, generating families of features like "has exactly/at least k …". `getFeatureRanges` picks the tightest ranges so only the best-scoring variants are reported. Metrics have knobs (`maxNonStrict`, `ignoreIfZero`) to suppress length-correlated or trivial results.
-- **Standalone linkers** (`src/linkers/`): indexing, length distribution, substring-category (hypernym DAG), other.
+- **Standalone linkers** (`src/linkers/`): indexing, length distribution, hypernym (WordNet categories by substring/transdelete/transadd), other.
 
 Per-word feature/metric probabilities are expensive, so they're precomputed into `src/data/cache/*.json` by `scripts/buildCache.ts` and loaded through `KeyedCache` (`src/lib/keyedCache.ts`). Missing keys are computed lazily at runtime, but slowly — hence rebuilding the cache after adding features.
 

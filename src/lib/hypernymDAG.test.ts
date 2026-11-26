@@ -1,14 +1,14 @@
 import { describe, expect, test } from "vitest";
 import { downloadHypernymData } from "../download.node.js";
 import { testLinker } from "../linkers/index.js";
-import { substringLinker } from "../linkers/substring.js";
+import { hypernymLinker } from "../linkers/hypernym.js";
 import { HypernymDAG } from "./hypernymDAG.js";
 import { slowTests } from "./testUtils.js";
 
 describe("hypernymDAG", () => {
   test.runIf(slowTests)("download + real data", async () => {
     const hypernymDAG = HypernymDAG.parse(await downloadHypernymData());
-    const link = testLinker(substringLinker, hypernymDAG);
+    const link = testLinker(hypernymLinker, hypernymDAG);
 
     expect(
       link([
@@ -63,6 +63,36 @@ describe("hypernymDAG", () => {
       piston        ton
       sandstone     stone
       squintalittle quintal",
+        ],
+      ]
+    `);
+
+    // Transdeletes:
+    expect(
+      link([
+        "bronco",
+        "enginator",
+        "fourlines",
+        "nitro",
+        "scenario",
+        "thecentrium",
+        "omurice",
+        "unsetting",
+        "roland",
+      ]),
+    ).toMatchInlineSnapshot(`
+      [
+        [
+          "9/9 has chemical element transdelete",
+          "bronco      boron
+      enginator   nitrogen
+      fourlines   fluorine
+      nitro       iron
+      scenario    arsenic
+      thecentrium technetium
+      omurice     cerium
+      unsetting   tungsten
+      roland      radon",
         ],
       ]
     `);

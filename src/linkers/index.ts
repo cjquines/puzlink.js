@@ -9,7 +9,7 @@ import * as T from "../templating/index.js";
 import { indexingLinker } from "./indexing.js";
 import { lengthLinker } from "./length.js";
 import { otherLinker } from "./other.js";
-import { substringLinker } from "./substring.js";
+import { hypernymLinker } from "./hypernym.js";
 
 /**
  * A PartialLink is the subset of Link that a Linker needs to return. We do
@@ -58,7 +58,7 @@ export function allLinkers({
     indexingLinker(wordlist),
     lengthLinker(lengthDist),
     otherLinker(wordlist),
-    substringLinker(hypernymDAG),
+    hypernymLinker(hypernymDAG),
   ];
 }
 

@@ -16,7 +16,7 @@ export default {
         LOWERCLASS
         RECONSTRUCT
       `,
-      expected: "has some transdelete",
+      expected: "has sword transdelete",
     },
   ],
 } satisfies EvalSuite;

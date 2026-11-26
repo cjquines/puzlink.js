@@ -60,7 +60,7 @@ export default {
         HOTELS
         WEEDS
       `,
-      expected: "has transadd",
+      expected: "has country transadd",
     },
   ],
 } satisfies EvalSuite;

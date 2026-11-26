@@ -1,5 +1,6 @@
 import { DeltaEncoding, FrontEncoding } from "./compress.js";
 import { DefaultMap } from "./defaultMap.js";
+import { LETTERS } from "./letterDistribution.js";
 import { LogNum } from "./logNum.js";
 import { memoize } from "./memoize.js";
 import { interval } from "./util.js";
@@ -21,22 +22,45 @@ function rateBucket(length: number): number {
 const RATE_FLOOR = 1e-4;
 const MIN_SUBSTRING_LENGTH = 3;
 
+/** Ways a slug can relate to a word under a synset. */
+export const WORD_OPS = ["substring", "transdelete", "transadd"] as const;
+export type WordOp = (typeof WORD_OPS)[number];
+
+function sortLetters(slug: string): string {
+  return slug.split("").sort().join("");
+}
+
 type SynsetData = {
   hyponymLogProb: LogNum;
   hypernyms: number[];
   word?: string;
 };
 
-function parseRates(rateLines: string[]): Map<number, LogNum[]> {
-  const rates = new Map<number, LogNum[]>();
+type Rates = Map<WordOp, Map<number, LogNum[]>>;
+
+/**
+ * Lines before the first "# <op>" header are rates; each header starts a
+ * section for that op.
+ */
+function parseRates(rateLines: string[]): Rates {
+  const rates: Rates = new Map();
+  let section = new Map<number, LogNum[]>();
+  rates.set("substring", section);
   let id = 0;
   for (const line of rateLines) {
     if (line.trim() === "") {
       continue;
     }
+    if (line.startsWith("#")) {
+      const op = line.slice(1).trim() as WordOp;
+      section = new Map();
+      rates.set(op, section);
+      id = 0;
+      continue;
+    }
     const [delta, ...encoded] = line.split(" ").map((x) => parseInt(x, 10));
     id += delta!;
-    rates.set(
+    section.set(
       id,
       encoded.map((x) => LogNum.fromExp(-x / 10)),
     );
@@ -57,15 +81,15 @@ export class HypernymDAG {
    */
   data: Map<number, SynsetData>;
   /**
-   * From synset ID to probability a wordlist slug has a substring under it,
-   * by length bucket. TODO: merge this into SynsetData?
+   * From op to synset ID to probability a wordlist slug relates by that op to
+   * a word under it, by length bucket.
    */
-  rates: Map<number, LogNum[]> | undefined;
+  rates: Rates | undefined;
 
   constructor(
     index: Map<string, number[]>,
     data: Map<number, SynsetData>,
-    rates?: Map<number, LogNum[]>,
+    rates?: Rates,
   ) {
     this.index = index;
     this.data = data;
@@ -192,11 +216,18 @@ export class HypernymDAG {
   }
 
   /**
-   * Compute substring rates over the given slugs (the wordlist). Each line is
-   * "<synset ID delta> <rate per bucket>...", where a rate is stored as
-   * round(-10 ln p).
+   * Compute rates for every op over the given slugs (the wordlist). Each op is
+   * a section headed "# <op>"; each line is "<synset ID delta> <rate per
+   * bucket>...", where a rate is stored as round(-10 ln p).
    */
-  dumpRates(slugs: Iterable<string>): string[] {
+  dumpRates(slugs: string[]): string[] {
+    return WORD_OPS.flatMap((op) => [
+      `# ${op}`,
+      ...this.dumpOpRates(slugs, op),
+    ]);
+  }
+
+  private dumpOpRates(slugs: string[], op: WordOp): string[] {
     const counts = new DefaultMap<number, number[]>(() =>
       RATE_BUCKETS.slice(1).map(() => 0),
     );
@@ -204,7 +235,7 @@ export class HypernymDAG {
     for (const slug of slugs) {
       const bucket = rateBucket(slug.length);
       totals[bucket]!++;
-      for (const id of this.substringAncestors(slug).keys()) {
+      for (const id of this.opAncestors(slug, op).keys()) {
         counts.get(id)[bucket]!++;
       }
     }
@@ -228,20 +259,79 @@ export class HypernymDAG {
     return lines;
   }
 
+  // TODO: extract? problem with DefaultMap is that missed .get()s create,
+  // but also having to sortLetters before every lookup is footgunny
+  private _anagramIndex: Map<string, string[]> | undefined;
+
+  /** Words by their sorted letters, for anagram lookups. Built lazily. */
+  get anagramIndex(): Map<string, string[]> {
+    if (!this._anagramIndex) {
+      this._anagramIndex = new Map();
+      for (const word of this.index.keys()) {
+        if (word.length >= MIN_SUBSTRING_LENGTH) {
+          const key = sortLetters(word);
+          const bin = this._anagramIndex.get(key);
+          if (bin) {
+            bin.push(word);
+          } else {
+            this._anagramIndex.set(key, [word]);
+          }
+        }
+      }
+    }
+    return this._anagramIndex;
+  }
+
+  /** Words (at least MIN_SUBSTRING_LENGTH long) related to the slug by op. */
+  opWords(slug: string, op: WordOp): string[] {
+    switch (op) {
+      case "substring": {
+        // Excludes the whole slug; longest first.
+        const words = [];
+        for (let size = slug.length - 1; size >= MIN_SUBSTRING_LENGTH; size--) {
+          for (let start = 0; start + size <= slug.length; start++) {
+            words.push(slug.slice(start, start + size));
+          }
+        }
+        return words;
+      }
+      case "transdelete": {
+        if (slug.length - 1 < MIN_SUBSTRING_LENGTH) {
+          return [];
+        }
+        const sorted = sortLetters(slug);
+        const words = [];
+        for (let i = 0; i < sorted.length; i++) {
+          if (i > 0 && sorted[i] === sorted[i - 1]) {
+            continue;
+          }
+          const key = sorted.slice(0, i) + sorted.slice(i + 1);
+          words.push(...(this.anagramIndex.get(key) ?? []));
+        }
+        return words;
+      }
+      case "transadd": {
+        const words = [];
+        for (const letter of LETTERS) {
+          const key = sortLetters(slug + letter);
+          words.push(...(this.anagramIndex.get(key) ?? []));
+        }
+        return words;
+      }
+    }
+  }
+
   /**
-   * All synsets with a hyponym that's a substring of the slug (excluding the
-   * whole slug), mapped to the longest such substring.
+   * All synsets with a hyponym related to the slug by op, mapped to the first
+   * such word.
    */
-  substringAncestors(slug: string): Map<number, string> {
+  opAncestors(slug: string, op: WordOp): Map<number, string> {
     const result = new Map<number, string>();
-    for (let size = slug.length - 1; size >= MIN_SUBSTRING_LENGTH; size--) {
-      for (let start = 0; start + size <= slug.length; start++) {
-        const word = slug.slice(start, start + size);
-        for (const id of this.index.get(word) ?? []) {
-          for (const ancestor of this.ancestors(id)) {
-            if (!result.has(ancestor)) {
-              result.set(ancestor, word);
-            }
+    for (const word of this.opWords(slug, op)) {
+      for (const id of this.index.get(word) ?? []) {
+        for (const ancestor of this.ancestors(id)) {
+          if (!result.has(ancestor)) {
+            result.set(ancestor, word);
           }
         }
       }
@@ -249,14 +339,21 @@ export class HypernymDAG {
     return result;
   }
 
-  /** Probability a slug of given length has a substring in the synset. */
-  substringLogProb(synsetID: number, length: number): LogNum {
-    if (!this.rates) {
+  /** Whether opLogProb is meaningful for this op. */
+  hasRates(op: WordOp): boolean {
+    return op === "substring" || this.rates?.has(op) === true;
+  }
+
+  /**
+   * Probability a slug of given length relates by op to a word in the synset.
+   * Without rates, substring falls back to the synset's hyponym share.
+   */
+  opLogProb(synsetID: number, op: WordOp, length: number): LogNum {
+    const rates = this.rates?.get(op);
+    if (!rates) {
       return this.data.get(synsetID)!.hyponymLogProb;
     }
-    return (
-      this.rates.get(synsetID)?.[rateBucket(length)] ?? LogNum.from(RATE_FLOOR)
-    );
+    return rates.get(synsetID)?.[rateBucket(length)] ?? LogNum.from(RATE_FLOOR);
   }
 
   @memoize(1)

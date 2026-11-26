@@ -36,7 +36,7 @@ const cli = meow(
       --no-features      Don't build feature log probs
       --no-metrics       Don't build metric log probs
       --no-letters       Don't build letter distribution
-      --no-hypernyms     Don't build hypernym substring rates
+      --no-hypernyms     Don't build hypernym rates
       --concurrency <n>  Number of workers
   `,
   {
@@ -280,7 +280,7 @@ async function main() {
   if (args.features) console.log("- feature log probs");
   if (args.metrics) console.log("- metric log probs");
   if (args.letters) console.log("- letter distribution");
-  if (args.hypernyms) console.log("- hypernym substring rates");
+  if (args.hypernyms) console.log("- hypernym rates");
   console.log(`using ${args.concurrency.toString()} workers`);
 
   console.log("");
@@ -297,14 +297,14 @@ async function main() {
   }
 
   if (args.hypernyms) {
-    console.log("\nbuilding hypernym substring rates...");
+    console.log("\nbuilding hypernym rates...");
     const hypernymDAG = HypernymDAG.parse(
       await downloadHypernymData({ includeWords: false }),
     );
     const { result, duration } = timeSync(() =>
       hypernymDAG.dumpRates(Object.keys(rawWordlist.result)),
     );
-    console.log(`built hypernym substring rates in ${duration.toString()}ms`);
+    console.log(`built hypernym rates in ${duration.toString()}ms`);
     await writeLines(
       path.resolve(scriptsDir, "..", "src", "data", "hypernyms"),
       "hypernyms-rates.txt",

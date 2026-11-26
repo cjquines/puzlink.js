@@ -16,7 +16,7 @@ export default {
         UNSETTING
         ROLAND
       `,
-      expected: "has some transdelete",
+      expected: "has chemical element transdelete",
     },
   ],
 } satisfies EvalSuite;
