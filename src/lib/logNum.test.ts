@@ -14,6 +14,25 @@ describe("LogNum", () => {
     expect(LogNum.fromFactorial(4).toNum()).toBeCloseTo(24);
   });
 
+  test("fishersMethod", () => {
+    // One p-value combines to itself:
+    expect(LogNum.fishersMethod([LogNum.from(0.5)]).toNum()).toBeCloseTo(0.5);
+
+    // exp(-S) (1 + S), S = 2 ln 10:
+    expect(
+      LogNum.fishersMethod([LogNum.from(0.1), LogNum.from(0.1)]).toNum(),
+    ).toBeCloseTo(0.01 * (1 + 2 * Math.log(10)));
+
+    // p = 1s still count:
+    expect(
+      LogNum.fishersMethod([
+        LogNum.from(0.5),
+        LogNum.from(1),
+        LogNum.from(1),
+      ]).toNum(),
+    ).toBeGreaterThan(0.5);
+  });
+
   test("exp, log", () => {
     expect(LogNum.from(0).exp().toNum()).toBeCloseTo(1);
     expect(LogNum.from(1).log().toNum()).toBeCloseTo(0);

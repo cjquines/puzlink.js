@@ -100,10 +100,21 @@ function sharedAffixes({ slugs, wordlist }: Props): PartialLink | null {
 
   return {
     name: T.Text("multiple shared suffixes and prefixes"),
-    // This is an underestimate because it assumes independence.
-    logProb: LogNum.prod(
-      Array.from(shared.values(), ({ length }) => {
-        return wordlist.probSharedAffix(length);
+    // Each slug's partner is the best of slugs.length - 1 candidates.
+    // This assumes independence.
+    logProb: LogNum.fishersMethod(
+      slugs.map((slug) => {
+        const length = shared.get(slug)?.length;
+        if (length === undefined) {
+          return LogNum.from(1);
+        }
+        return LogNum.from(1).sub(
+          LogNum.binomialProb(
+            0,
+            slugs.length - 1,
+            wordlist.probSharedAffix(length),
+          ),
+        );
       }),
     ),
     description: T.Table(

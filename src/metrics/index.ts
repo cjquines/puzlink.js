@@ -201,6 +201,13 @@ function metricLinker(wordlist: Wordlist, metric: Metric): Linker {
         scores.map((x) => x.score),
       );
 
+      // Every range is a hypothesis; see Feature.familySize.
+      let rangeCount = 0;
+      for (const ranges of bitsetToRanges.values()) {
+        rangeCount += ranges.length;
+      }
+      const penalty = LogNum.from(rangeCount);
+
       const bitsetToBest = new Map<bigint, PartialLink>();
       for (const [bitset, ranges] of bitsetToRanges) {
         const indices = Array.from(new Bitset(bitset).entries());
@@ -226,7 +233,7 @@ function metricLinker(wordlist: Wordlist, metric: Metric): Linker {
             indices.length,
             slugs.length,
             meanFrequency,
-          );
+          )?.mul(penalty);
           return logProb ? [{ range, logProb }] : [];
         });
         const { range, logProb } =

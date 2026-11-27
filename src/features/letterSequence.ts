@@ -1,6 +1,7 @@
 import { LETTERS } from "../lib/letterDistribution.js";
-import { interval, mapProduct } from "../lib/util.js";
+import { interval } from "../lib/util.js";
 import * as T from "../templating/index.js";
+import { familyOver } from "./family.js";
 import type { Feature } from "./index.js";
 
 function unequalWithDistance(a: string, b: string, distance: number): Feature {
@@ -81,7 +82,7 @@ function bookendsOf(length: number): Feature {
  */
 export function letterSequenceFeatures(): Feature[] {
   return [
-    ...mapProduct(unequalWithDistance, LETTERS, LETTERS, [0, 1]),
-    ...mapProduct(bookendsOf, [1, 2, 3]),
+    ...familyOver(unequalWithDistance, LETTERS, LETTERS, [0, 1]),
+    ...familyOver(bookendsOf, [1, 2, 3]),
   ];
 }

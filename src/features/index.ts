@@ -36,6 +36,11 @@ export type Feature = {
   name: T.Inline;
   /** If the `slug` has the feature, returns a description. */
   property: (slug: string, props: Props) => T.Row | null;
+  /**
+   * Number of features in this feature's family, e.g. 26 for "can prepend
+   * {letter}". Scores get a penalty based on family size.
+   */
+  familySize?: number;
 };
 
 function getProps(wordlist: Wordlist, slug: string): Props {
@@ -55,7 +60,8 @@ export function featureLogProb(wordlist: Wordlist, feature: Feature): LogNum[] {
  * whichever is less.
  */
 function featureLinker(wordlist: Wordlist, feature: Feature): Linker | null {
-  const { name, property } = feature;
+  const { name, property, familySize = 1 } = feature;
+  const penalty = LogNum.from(familySize);
   const key = T.renderToText(name);
   FeatureLogProbs.fill(key, () => featureLogProb(wordlist, feature));
 
@@ -85,7 +91,7 @@ function featureLinker(wordlist: Wordlist, feature: Feature): Linker | null {
         description.length,
         slugs.length,
         meanFrequency,
-      );
+      )?.mul(penalty);
       if (!logProb) {
         return [];
       }

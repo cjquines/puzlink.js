@@ -5,8 +5,9 @@ import {
   type Category,
 } from "../data/categories.js";
 import { LetterBitCounters } from "../lib/letterBitCounter.js";
-import { interval, mapProduct } from "../lib/util.js";
+import { interval } from "../lib/util.js";
 import * as T from "../templating/index.js";
+import { familyOver } from "./family.js";
 import type { Feature } from "./index.js";
 
 function containsOne(category: Category): Feature {
@@ -164,14 +165,14 @@ function hasChangeAny(category: Category): Feature {
 
 export function substringFeatures(): Feature[] {
   return [
-    ...mapProduct(
+    ...familyOver(
       containsOne,
       categories.filter((c) => shortCategories.every((d) => c.name !== d.name)),
     ),
-    ...mapProduct(startsWithOne, categories),
-    ...mapProduct(endsWithOne, categories),
-    ...mapProduct(canBeBrokenInto, shortCategories),
-    ...mapProduct(hasAnagram, longCategories),
-    ...mapProduct(hasChangeAny, longCategories),
+    ...familyOver(startsWithOne, categories),
+    ...familyOver(endsWithOne, categories),
+    ...familyOver(canBeBrokenInto, shortCategories),
+    ...familyOver(hasAnagram, longCategories),
+    ...familyOver(hasChangeAny, longCategories),
   ];
 }

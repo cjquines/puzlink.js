@@ -1,12 +1,7 @@
 import { LETTERS } from "../lib/letterDistribution.js";
-import {
-  caesar,
-  enumerate,
-  interval,
-  mapProduct,
-  windows,
-} from "../lib/util.js";
+import { caesar, enumerate, interval, windows } from "../lib/util.js";
 import * as T from "../templating/index.js";
+import { familyOver } from "./family.js";
 import type { Feature } from "./index.js";
 
 function prependWith(letter: string): Feature {
@@ -591,27 +586,27 @@ function caesarShift(): Feature {
  */
 export function wordplayFeatures(): Feature[] {
   return [
-    ...mapProduct(prependWith, LETTERS),
+    ...familyOver(prependWith, LETTERS),
     prependAny(),
-    ...mapProduct(appendWith, LETTERS),
+    ...familyOver(appendWith, LETTERS),
     appendAny(),
-    ...mapProduct(insertWith, LETTERS),
+    ...familyOver(insertWith, LETTERS),
     insertAny(),
     behead(),
     curtail(),
-    ...mapProduct(deleteWith, LETTERS),
+    ...familyOver(deleteWith, LETTERS),
     deleteAny(),
     takeOddOrEven(),
-    ...mapProduct(changeTo, LETTERS),
+    ...familyOver(changeTo, LETTERS),
     changeAny(),
     reverse(),
     rotate(),
     swapAdjacent(),
     swapEnds(),
     anagram(),
-    ...mapProduct(transaddWith, LETTERS),
+    ...familyOver(transaddWith, LETTERS),
     transaddAny(),
-    ...mapProduct(transdeleteWith, LETTERS),
+    ...familyOver(transdeleteWith, LETTERS),
     transdeleteAny(),
     caesarShift(),
   ];

@@ -51,7 +51,7 @@ export function* product<const Iters extends Iterable<any>[]>(
   }
 }
 
-type IterMap<A extends any[]> = A extends [infer First, ...infer Rest]
+export type IterMap<A extends any[]> = A extends [infer First, ...infer Rest]
   ? [Iterable<First>, ...IterMap<Rest>]
   : [];
 

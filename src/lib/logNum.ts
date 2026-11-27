@@ -187,6 +187,10 @@ export class LogNum {
     return new LogNum(acc);
   }
 
+  /**
+   * Probability of getting exact number of successes in independent trials,
+   * given frequency of success.
+   */
   static binomialProb(
     successes: number,
     trials: number,
@@ -227,6 +231,20 @@ export class LogNum {
     }
 
     return LogNum.sum(probs);
+  }
+
+  /** Combine independent p-values into one. */
+  static fishersMethod(pValues: LogNum[]): LogNum {
+    const count = pValues.length;
+    const s = -LogNum.prod(pValues).toLog();
+    if (s <= 0) {
+      return LogNum.from(1);
+    }
+    return LogNum.sum(
+      interval(0, count - 1).map((i) =>
+        LogNum.fromExp(-s + i * Math.log(s)).div(LogNum.fromFactorial(i)),
+      ),
+    );
   }
 
   [Symbol.for("nodejs.util.inspect.custom")](): string {
